@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121316" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="관리 비용">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>관리 비용</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm, direct, a little alarming when spending climbs
+   IDEA: a receipt ring — the month's spend as one ring you can't ignore
+   PICTURE: large donut with the total inside; category chips are legend and filter at once
+   COLOUR and TYPE: white / near-black, one coral alarm accent, six clear category hues; IBM Plex Sans KR
+   LAYOUT: one column — month, ring, chips, list, floating add button */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#121316);--card:light-dark(#f4f5f7,#1c1d22);--ink:light-dark(#15161a,#f2f3f5);
+--mute:light-dark(#7a7f8a,#8d929c);--line:light-dark(#e6e8ec,#2a2c33);--hot:#ff4d4f;--ok:#12b886;--track:light-dark(#eef0f3,#24262c)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans KR",system-ui,sans-serif;overflow-x:clip;-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.wrap{max-width:480px;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(120px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+html,body{overscroll-behavior-y:none}
+.mon{display:flex;align-items:center;justify-content:center;gap:4px}
+.mon b{font-size:17px;font-weight:500;min-width:7em;text-align:center}
+.ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--mute)}
+.ic:hover{background:var(--card)}
+.ic svg{width:20px;height:20px}
+.ring{position:relative;width:min(78vw,300px);aspect-ratio:1;margin:8px auto 4px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:22}
+.mid{position:absolute;inset:0;pointer-events:none;display:grid;place-content:center;text-align:center}
+.sum{font-size:clamp(30px,9vw,40px);font-weight:700;line-height:1.05;letter-spacing:-.02em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sum small{font-size:.5em;font-weight:500;margin-left:2px}
+.accw{display:grid;justify-items:center}.acc{margin-top:6px;font-size:14px;color:var(--mute);white-space:nowrap;font-variant-numeric:tabular-nums}
+.cmp{justify-self:center;margin-top:8px;font-size:14px;font-weight:500;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.cmp.up{color:var(--hot);background:color-mix(in srgb,var(--hot) 12%,transparent)}
+.cmp.dn{color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0 24px}
+.chip{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:99px;background:var(--card);font-size:15px;border:2px solid transparent;transition:opacity .2s}
+.chip i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.chip span{color:var(--mute);font-size:13px;font-variant-numeric:tabular-nums}
+.chip[aria-pressed=true]{border-color:var(--c)}
+.chips.on .chip[aria-pressed=false]{opacity:.45}
+.list{list-style:none;margin:0;padding:0}
+.day{font-size:13px;color:var(--mute);margin:18px 4px 6px}
+.row{display:flex;align-items:center;gap:12px;padding:10px 4px 10px 12px;border-radius:14px}
+.row{cursor:pointer;transition:background-color .2s}.row:hover,.row:active{background:var(--card)}
+.row i{flex:none;width:10px;height:36px;border-radius:5px;background:var(--c)}
+.row .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .a{font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.row .ic{width:40px;height:40px;flex:none;opacity:.6}
+.empty{text-align:center;color:var(--mute);padding:28px 0}
+.fab{position:fixed;right:max(20px,calc(50vw - 220px));bottom:calc(24px + env(safe-area-inset-bottom));width:60px;height:60px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;box-shadow:0 8px 24px rgb(0 0 0/.22);transition:transform .15s}
+.fab:active{transform:scale(.94)}
+.fab svg{width:26px;height:26px}
+.sheet{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgb(0 0 0/.4)}
+.sheet.open{display:flex}
+.panel{width:100%;max-width:480px;background:var(--bg);border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));animation:up .25s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.amt{display:flex;align-items:baseline;gap:4px;border-bottom:2px solid var(--line);padding:4px 2px;margin-bottom:16px}
+.amt:focus-within{border-color:var(--ink)}
+.amt input{flex:1;border:0;background:none;font-size:34px;font-weight:700;outline:none;font-variant-numeric:tabular-nums;width:100%}
+.amt span{font-size:20px;color:var(--mute)}
+.panel .chips{justify-content:flex-start;margin:0 0 16px}
+.f{display:flex;gap:8px;margin-bottom:16px}
+.f input{height:48px;border:0;border-radius:12px;background:var(--card);padding:0 14px;font-size:16px}
+.f input[type=text]{flex:1}
+.f input[type=date]{width:10.5em}
+.go{width:100%;height:54px;border-radius:14px;background:var(--ink);color:var(--bg);font-weight:700;font-size:17px}
+.go:disabled{opacity:.3;cursor:default}
+.chip.ed{width:40px;padding:0;justify-content:center;color:var(--mute)}
+.chip.ed svg{width:18px;height:18px}
+.elist{list-style:none;margin:0;padding:0;max-height:55vh;overflow-y:auto}
+.erow{display:flex;align-items:center;gap:8px;padding:4px 0}
+.dot{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center}
+.dot::after{content:"";width:24px;height:24px;border-radius:50%;background:var(--c)}
+.erow input{flex:1;height:46px;border:0;border-radius:12px;background:var(--card);padding:0 14px;font-size:16px}
+.erow .ic.warn{background:var(--hot);color:#fff;opacity:1}
+.eadd{margin-bottom:16px}.eadd .dot{cursor:default}.eadd .sp{flex:none;width:44px}
+/* interactions */
+.chip,.go,.ic,.dot,.mon b{transition:transform .14s ease,opacity .2s,border-color .2s,background-color .2s}
+.chip:active,.go:active:not(:disabled),.ic:active,.dot:active{transform:scale(.92)}
+.ring.pop{animation:pop .35s ease}
+@keyframes pop{40%{transform:scale(1.04)}}
+.mon b.sl{animation:sl .3s ease}
+@keyframes sl{from{opacity:0;transform:translateX(var(--dx,12px))}}
+.row.new{animation:rin .5s ease}
+@keyframes rin{from{opacity:0;transform:translateY(-8px);background:color-mix(in srgb,var(--c) 25%,transparent)}60%{background:color-mix(in srgb,var(--c) 18%,transparent)}}
+.row.out{animation:rout .22s ease forwards}
+@keyframes rout{to{opacity:0;transform:translateX(24px)}}
+.sheet.open{animation:fade .2s ease}
+@keyframes fade{from{background:transparent}}
+.sheet.closing{animation:fadeout .2s ease forwards}
+.sheet.closing .panel{animation:down .2s ease-in forwards}
+@keyframes fadeout{to{background:transparent}}
+@keyframes down{to{transform:translateY(60px);opacity:0}}
+.erow.new{animation:rin .4s ease}
+.erow .ic.warn{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.amt.bad{animation:shake .3s;border-color:var(--hot)}
+/* transitions */
+.sum{transition:color .35s}
+.ring circle[data-c]{cursor:pointer;transition:stroke-dasharray .6s cubic-bezier(.2,.8,.2,1),stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1),opacity .3s,stroke-width .3s,stroke .4s}
+.ring circle.on{stroke-width:28}
+#view{touch-action:pan-y}
+#view.mv{animation:mv .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes mv{from{opacity:0;transform:translateX(var(--dx,24px))}}
+.in{animation:fup .4s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(min(var(--i),10)*35ms)}
+@keyframes fup{from{opacity:0;transform:translateY(10px)}}
+.chips .chip.in{animation-name:cin}
+@keyframes cin{from{opacity:0;transform:scale(.85)}}
+.chip[aria-pressed=true]{animation:sel .3s ease}
+@keyframes sel{50%{transform:scale(1.07)}}
+.fab{animation:cin .4s .15s cubic-bezier(.2,.8,.2,1) both}
+.panel{transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.panel.drag{transition:none}
+.dot::after{transition:background-color .4s}
+.erow.gone{animation:gone .22s ease forwards}
+@keyframes gone{to{opacity:0;transform:translateX(30px)}}
+.empty.in{animation-delay:0s}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <nav class="mon">
+    <button class="ic" id="prev" aria-label="이전 달"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <b id="mlabel"></b>
+    <button class="ic" id="next" aria-label="다음 달"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </nav>
+  <section id="view">
+  <div class="ring"><svg viewBox="0 0 200 200" id="donut"></svg>
+    <div class="mid"><div class="sum" id="sum"></div><div id="cmp" class="accw"></div></div>
+  </div>
+  <div class="chips" id="filter"></div>
+  <ul class="list" id="list"></ul>
+  </section>
+</main>
+<button class="fab" id="add" aria-label="추가"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<div class="sheet" id="sheet">
+  <form class="panel" id="form" novalidate>
+    <label class="amt"><input id="fa" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0" autocomplete="off" aria-label="금액"><span>원</span></label>
+    <div class="chips" id="fc"></div>
+    <div class="f"><input type="text" id="fn" placeholder="내용" maxlength="30" aria-label="내용"><input type="date" id="fd" aria-label="날짜"></div>
+    <button type="button" class="go" id="save" disabled>추가</button>
+  </form>
+</div>
+<div class="sheet" id="esheet">
+  <div class="panel">
+    <ul class="elist" id="elist"></ul>
+    <form class="erow eadd" id="eform" autocomplete="off"><span class="dot" style="--c:var(--line)"></span><input id="eadd" placeholder="새 카테고리" maxlength="10" aria-label="새 카테고리" enterkeyhint="enter"><span class="sp"></span></form>
+    <button class="go" id="edone">완료</button>
+  </div>
+</div>
+<script>
+{
+const PAL=["#e5735f","#ec9a62","#e2bb5e","#9bbf86","#68ad9c","#6a9fc2","#7d88c9","#9a84c2"];
+const DEF=["피부","헤어","네일","화장품","운동","기타"].map(n=>({id:n,name:n}));
+const CKEY="care-cats-v1";
+let cats,catsT=0;try{const v=JSON.parse(localStorage.getItem(CKEY)||"null");if(Array.isArray(v))cats=v;else if(v){cats=v.cats;catsT=v.t||0}}catch(e){}
+if(!Array.isArray(cats)||!cats.length)cats=DEF.map(c=>({...c}));
+const cat=id=>cats.find(c=>c.id===id);
+const color=id=>{const i=cats.findIndex(c=>c.id===id);return i<0?"#9aa1ad":PAL[i%PAL.length]};
+const cname=id=>(cat(id)||{name:"기타"}).name;
+const KEY="care-cost-v1";
+const $=id=>document.getElementById(id);
+const won=n=>n.toLocaleString("ko-KR");
+const pad=n=>String(n).padStart(2,"0");
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())};
+const RM=(()=>{try{return matchMedia("(prefers-reduced-motion: reduce)").matches}catch(e){return false}})();
+const pendAdd=new Map(),pendDel=new Set();
+let prevArc={},shownNow=0,tick=0,lastNew=null,items=[],sel=null,fcat=cats[0].id,col=null;
+let ym=today().slice(0,7);
+try{items=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){items=[]}
+const saveLocal=()=>{try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}};
+const shift=(m,k)=>{let[y,mo]=m.split("-").map(Number);mo+=k;if(mo<1){mo=12;y--}if(mo>12){mo=1;y++}return y+"-"+pad(mo)};
+const ofMonth=m=>items.filter(i=>i.date.slice(0,7)===m);
+const sumOf=a=>a.reduce((s,i)=>s+i.amt,0);
+
+let enter=true;
+function render(){
+  const ent=enter&&!RM;enter=false;let n=0;
+  const [y,m]=ym.split("-");
+  $("mlabel").textContent=(y===today().slice(0,4)?"":y+"년 ")+Number(m)+"월";
+  const mon=ofMonth(ym),tot=sumOf(mon);
+  const by=cats.map(k=>({c:k.id,n:k.name,col:color(k.id),v:sumOf(mon.filter(i=>i.cat===k.id))}));
+  if(sel&&!cat(sel))sel=null;
+  // donut
+  const R=80,L=2*Math.PI*R;let off=0;
+  const nz=by.filter(x=>x.v).length,gap=nz>1?1.5:0,next={};
+  let svg=`<circle cx="100" cy="100" r="${R}" style="stroke:var(--track)"/>`;
+  by.forEach(b=>{const len=tot?b.v/tot*L:0,d=Math.max(len-gap,0),p=prevArc[b.c]||{d:0,o:-off};next[b.c]={d,o:-off};
+    svg+=`<circle data-c="${b.c}" cx="100" cy="100" r="${R}" stroke="${b.col}" stroke-dasharray="${p.d} ${L}" stroke-dashoffset="${p.o}" opacity="${sel&&sel!==b.c?.18:1}"${sel===b.c?' class="on"':""}/>`;off+=len});
+  $("donut").innerHTML=svg;prevArc=next;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>$("donut").querySelectorAll("circle[data-c]").forEach(c=>{const n=next[c.dataset.c];c.setAttribute("stroke-dasharray",n.d+" "+L);c.setAttribute("stroke-dashoffset",n.o)})));
+  const shown=sel?(by.find(b=>b.c===sel)||{v:0}).v:tot;
+  countTo(shown);
+  $("sum").style.color=sel?color(sel):"";
+  // all-time total
+  const all=sumOf(items.filter(i=>!sel||i.cat===sel));
+  $("cmp").innerHTML=`<span class="acc">전체${won(all)}원</span>`;
+  // filter chips
+  $("filter").className="chips"+(sel?" on":"");
+  $("filter").innerHTML=by.filter(b=>b.v||b.c===sel).map((b,i)=>`<button class="chip${ent?" in":""}" style="--c:${b.col};--i:${i}" data-c="${b.c}" aria-pressed="${sel===b.c}"><i></i>${esc(b.n)}<span>${Math.round(b.v/tot*100)||0}%</span></button>`).join("");
+  // list
+  const rows=mon.filter(i=>!sel||i.cat===sel).sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+  if(!rows.length){$("list").innerHTML=`<li class="empty${ent?" in":""}" style="--i:0">+ 를 눌러 기록해 보세요</li>`;return}
+  let html="",last="";
+  rows.forEach(i=>{const d=i.date;if(d!==last){const dt=new Date(d+"T00:00");html+=`<li class="day${ent?" in":""}" style="--i:${n++}">${dt.getMonth()+1}.${dt.getDate()} ${"일월화수목금토"[dt.getDay()]}</li>`;last=d}
+    html+=`<li class="row${i.id===lastNew?" new":ent?" in":""}" data-id="${i.id}" style="--c:${color(i.cat)};--i:${n++}"><i></i><span class="t">${esc(i.name||cname(i.cat))}</span><span class="a">${won(i.amt)}원</span><button class="ic" data-del="${i.id}" aria-label="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></li>`});
+  $("list").innerHTML=html;lastNew=null;
+}
+function countTo(v){const from=shownNow,t0=performance.now(),id=++tick;shownNow=v;
+  const put=n=>$("sum").innerHTML=won(Math.round(n))+"<small>원</small>";
+  if(RM||from===v)return put(v);
+  const step=t=>{if(id!==tick)return;const k=Math.min((t-t0)/500,1),e=1-(1-k)**3;put(from+(v-from)*e);if(k<1)requestAnimationFrame(step)};
+  requestAnimationFrame(step)}
+function bump(){const r=document.querySelector(".ring");r.classList.remove("pop");void r.offsetWidth;r.classList.add("pop")}
+function buzz(){try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+// events
+function slide(k){const b=$("mlabel");b.style.setProperty("--dx",(k*-14)+"px");b.classList.remove("sl");void b.offsetWidth;b.classList.add("sl")}
+function go(k){ym=shift(ym,k);enter=true;render();slide(k);
+  const v=$("view");v.style.setProperty("--dx",(k*28)+"px");v.classList.remove("mv");void v.offsetWidth;v.classList.add("mv")}
+$("prev").onclick=()=>go(-1);
+$("next").onclick=()=>go(1);
+let sx=null,sy=0;
+$("view").addEventListener("touchstart",e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY},{passive:true});
+$("view").addEventListener("touchend",e=>{if(sx==null)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;sx=null;
+  if(Math.abs(dx)>60&&Math.abs(dy)<45)go(dx<0?1:-1)},{passive:true});
+function pick(c){sel=sel===c?null:c;enter=true;render();buzz()}
+$("filter").onclick=e=>{const b=e.target.closest(".chip");if(b)pick(b.dataset.c)};
+$("donut").addEventListener("click",e=>{const c=e.target.closest("circle[data-c]");if(c)pick(c.dataset.c)});
+$("list").onclick=e=>{const b=e.target.closest("[data-del]");
+  if(!b){const row=e.target.closest(".row");const it=row&&items.find(i=>i.id===row.dataset.id);if(it)openSheet(it);return}const id=b.dataset.del;
+  const row=b.closest(".row");row.classList.add("out");buzz();
+  setTimeout(()=>{items=items.filter(i=>i.id!==id);saveLocal();render()},RM?0:200);
+  if(col){pendDel.add(id);try{col.doc(id).delete()}catch(e){}}};
+
+function drawFormChips(){if(!cat(fcat))fcat=cats[0].id;$("fc").innerHTML=cats.map(k=>`<button type="button" class="chip" style="--c:${color(k.id)}" data-c="${k.id}" aria-pressed="${fcat===k.id}"><i></i>${esc(k.name)}</button>`).join("")+EDBTN}
+$("fc").onclick=e=>{if(e.target.closest(".ed"))return openEdit();const b=e.target.closest(".chip");if(!b)return;fcat=b.dataset.c;drawFormChips()};
+const amtVal=()=>Number($("fa").value.replace(/\D/g,""));
+$("fa").onkeydown=e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();$("form").requestSubmit()}};
+$("fn").onkeydown=$("fa").onkeydown;
+$("fa").oninput=()=>{const v=amtVal();$("fa").value=v?won(v):"";$("save").disabled=!v};
+let editing=null;
+function openSheet(it){editing=it||null;fcat=it?it.cat:(sel||fcat);drawFormChips();$("form").style.transform="";
+  $("fa").value=it?won(it.amt):"";$("fn").value=it?it.name:"";
+  const t=today();$("fd").value=it?it.date:t.slice(0,7)===ym?t:ym+"-01";$("save").disabled=!it;$("save").textContent=it?"수정":"추가";
+  $("sheet").classList.add("open");setTimeout(()=>$("fa").focus(),60)}
+function shut(el,after){if(!el.classList.contains("open"))return;if(RM){el.classList.remove("open");after&&after();return}
+  el.classList.add("closing");setTimeout(()=>{el.classList.remove("open","closing");after&&after()},190)}
+const closeSheet=()=>{document.activeElement&&document.activeElement.blur&&document.activeElement.blur();shut($("sheet"))};
+$("add").onclick=()=>openSheet();
+let editClosedAt=0;
+$("sheet").onclick=e=>{if(e.target===$("sheet")&&Date.now()-editClosedAt>500)closeSheet()};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if($("esheet").classList.contains("open"))closeEdit();else closeSheet()}});
+$("form").onsubmit=e=>{e.preventDefault();if(!$("sheet").classList.contains("open")||$("sheet").classList.contains("closing"))return;
+  const amt=amtVal();if(!amt){const a=document.querySelector(".amt");a.classList.remove("bad");void a.offsetWidth;a.classList.add("bad");return}
+  const f={amt,cat:fcat,name:$("fn").value.trim(),date:$("fd").value||today()};
+  let it;
+  if(editing){it={...editing,...f};const k=items.findIndex(i=>i.id===it.id);if(k<0)items.push(it);else items[k]=it}
+  else{it={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),...f};items.push(it)}
+  editing=null;lastNew=it.id;saveLocal();ym=it.date.slice(0,7);closeSheet();render();bump();buzz();
+  if(col){pendAdd.set(it.id,it);try{col.doc(it.id).set(it)}catch(e){}}};
+
+function dragClose(panel,close){let y0=null,dy=0;
+  panel.addEventListener("touchstart",e=>{if(e.target.closest("input,.elist"))return;y0=e.touches[0].clientY;dy=0;panel.classList.add("drag")},{passive:true});
+  panel.addEventListener("touchmove",e=>{if(y0==null)return;dy=Math.max(0,e.touches[0].clientY-y0);panel.style.transform=`translateY(${dy}px)`},{passive:true});
+  panel.addEventListener("touchend",()=>{if(y0==null)return;y0=null;panel.classList.remove("drag");
+    if(dy>90){close();setTimeout(()=>panel.style.transform="",260)}else panel.style.transform=""})}
+dragClose($("form"),closeSheet);
+dragClose(document.querySelector("#esheet .panel"),()=>closeEdit());
+const EDBTN=`<button type="button" class="chip ed" aria-label="카테고리 편집"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>`;
+function saveCats(){catsT=Date.now();const v={t:catsT,cats:cats.map(c=>({id:c.id,name:c.name}))};
+  try{localStorage.setItem(CKEY,JSON.stringify(v))}catch(e){}
+  if(col){try{const p=col.doc("meta-cats").set({kind:"cats",...v});p&&p.catch&&p.catch(()=>{})}catch(e){}}}
+let armed=null;
+let newCat=null;
+function drawEdit(old){$("elist").innerHTML=cats.map((k,i)=>`<li class="erow${k.id===newCat?" new":""}" data-id="${k.id}" style="--c:${old&&old[k.id]||color(k.id)}"><span class="dot"></span><input value="${esc(k.name)}" data-n="${i}" maxlength="10" aria-label="이름"><button class="ic${armed===k.id?" warn":""}" data-x="${i}" aria-label="삭제"${cats.length<2?" disabled":""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></li>`).join("")}
+function openEdit(){armed=null;$("eadd").value="";drawEdit();document.querySelector("#esheet .panel").style.transform="";$("esheet").classList.add("open")}
+function closeEdit(){if(!$("esheet").classList.contains("open")||$("esheet").classList.contains("closing"))return;
+  try{addCat();cats.forEach(k=>{k.name=k.name.trim()||"카테고리"});saveCats();drawFormChips();render()}
+  catch(e){}
+  finally{editClosedAt=Date.now();const a=document.activeElement;if(a&&a.blur)a.blur();shut($("esheet"))}}
+$("elist").onclick=e=>{
+  const x=e.target.closest("[data-x]");if(!x||cats.length<2)return;
+  const k=cats[+x.dataset.x];
+  if(armed!==k.id){armed=k.id;drawEdit();return}
+  // second tap: delete, moving its records to 기타 (or the first remaining category)
+  const row=x.closest(".erow");row.classList.add("gone");buzz();
+  setTimeout(()=>{const old={};cats.forEach(c=>old[c.id]=color(c.id));
+    cats=cats.filter(c=>c!==k);armed=null;
+    const to=(cats.find(c=>c.name==="기타")||cats[0]).id;
+    items=items.map(i=>{if(i.cat!==k.id)return i;const n={...i,cat:to};if(col){pendAdd.set(n.id,n);try{col.doc(n.id).set(n)}catch(e){}}return n});
+    saveLocal();saveCats();drawEdit(old);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>$("elist").querySelectorAll(".erow").forEach(r=>r.style.setProperty("--c",color(r.dataset.id)))))},RM?0:200)};
+$("elist").oninput=e=>{const n=e.target.dataset.n;if(n!=null)cats[+n].name=e.target.value};
+$("elist").addEventListener("focusout",e=>{if(e.target.dataset.n!=null)saveCats()});
+function addCat(){const v=$("eadd").value.trim();if(!v)return false;newCat="c"+Date.now().toString(36);cats.push({id:newCat,name:v});
+  $("eadd").value="";armed=null;drawEdit();newCat=null;saveCats();buzz();return true}
+const addSoon=()=>setTimeout(()=>{if(addCat()){$("eadd").focus();const l=$("elist");l.scrollTop=l.scrollHeight}},0);
+$("eform").onsubmit=e=>{e.preventDefault();addSoon()};
+// iOS keyboard "완료" only dismisses the keyboard (no Enter), so also add when the field loses focus
+$("eadd").addEventListener("blur",()=>setTimeout(addCat,0));
+$("eadd").addEventListener("keydown",e=>{if(e.key==="Enter"||e.keyCode===13){e.preventDefault();addSoon()}});
+$("eadd").addEventListener("keyup",e=>{if(e.key==="Enter"||e.keyCode===13)addSoon()});
+$("edone").onclick=closeEdit;
+$("save").onclick=()=>{if(!$("save").disabled)$("form").requestSubmit()};
+$("esheet").onclick=e=>{if(e.target===$("esheet"))closeEdit()};
+
+render();
+
+// keep records across devices when the page's store is available
+(async()=>{try{
+  if(!window.claude||!claude.use)return;
+  const db=await claude.use("db"),user=await claude.use("user");if(!db||!user)return;
+  const uid=await user.id();if(!uid)return;
+  col=db.collection("data/users/"+uid);
+  let first=true;
+  col.onSnapshot(s=>{
+    const arr=(s&&s.docs)||s||[];
+    const all=arr.map(d=>typeof d.data==="function"?d.data():(d.data&&(d.data.amt||d.data.kind)?d.data:d)).filter(Boolean);
+    const remote=all.filter(v=>typeof v.amt==="number"&&v.id);
+    const rc=all.filter(v=>v.kind==="cats"&&Array.isArray(v.cats)&&v.cats.length&&v.t).sort((a,b)=>b.t-a.t)[0];
+    if(rc&&rc.t>catsT&&!$("esheet").classList.contains("open")){cats=rc.cats.map(c=>({id:c.id,name:c.name}));catsT=rc.t;
+      try{localStorage.setItem(CKEY,JSON.stringify({t:catsT,cats}))}catch(e){}}
+    else if(!rc||rc.t<catsT)saveCats();
+    if(first){first=false;const ids=new Set(remote.map(r=>r.id));
+      items.filter(i=>!ids.has(i.id)).forEach(i=>{try{col.doc(i.id).set(i)}catch(e){}});
+      const m=new Map(items.map(i=>[i.id,i]));remote.forEach(r=>m.set(r.id,r));items=[...m.values()];
+    }else{const ids=new Set(remote.map(r=>r.id));
+      const same=(a,b)=>a&&b&&a.amt===b.amt&&a.cat===b.cat&&a.name===b.name&&a.date===b.date;
+      const rm=new Map(remote.map(r=>[r.id,r]));
+      pendAdd.forEach((v,k)=>{if(same(rm.get(k),v))pendAdd.delete(k)});
+      pendDel.forEach(k=>{if(!ids.has(k))pendDel.delete(k)});
+      pendAdd.forEach((v,k)=>rm.set(k,v));pendDel.forEach(k=>rm.delete(k));
+      items=[...rm.values()];}
+    saveLocal();render()});
+}catch(e){}})();
+}
+</script>
+<script>if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}))</script>
+</body>
+</html>
